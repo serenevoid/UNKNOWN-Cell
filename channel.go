@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+    "regexp"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -22,14 +23,16 @@ func getPair() string {
 
 func createChannel() {
 	messageChannel := make(chan *discordgo.MessageCreate)
+    linkPattern, _ := regexp.Compile(`[a-z]+[:.].*`)
 	s.AddHandler(func(_ *discordgo.Session, m *discordgo.MessageCreate) {
 		if !m.Author.Bot {
 			if pairs[m.ChannelID] != "" {
-				messageChannel <- m
+                if !linkPattern.MatchString(m.Content) {
+                    messageChannel <- m
+                }
 			}
 		}
 	})
-
 	go func() {
 		for {
 			m := <-messageChannel
@@ -40,5 +43,4 @@ func createChannel() {
 			}
 		}
 	}()
-
 }

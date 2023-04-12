@@ -1,12 +1,12 @@
 package main
 
 func main() {
-    createSession()
-    addCommandHandlers()
-    createSocketConnection()
-    addCommands()
+	createSession()
+	addCommandHandlers()
+	createSocketConnection()
+	addCommands()
 	defer s.Close()
-    createChannel()
-    setupInterrupt()
-    removeCommands()
+	createChannel()
+	setupInterrupt()
+	removeCommands()
 }
