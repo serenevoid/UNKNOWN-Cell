@@ -2,41 +2,44 @@ package main
 
 import (
 	"fmt"
-    "regexp"
+	"regexp"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 var (
-	waitingUsers = make([]string, 0)
-	pairs        = make(map[string]string)
+	waitingChannels = make([]string, 0)
+	pairedChannels  = make(map[string]string)
+	channelUserMap  = make(map[string]string)
+	reportedUsers   = make(map[string]int)
+	bannedUsers     = make(map[string]int)
 )
 
 func getPair() string {
-	if len(waitingUsers) < 1 {
+	if len(waitingChannels) < 1 {
 		return ""
 	}
-	pair := waitingUsers[0]
-	waitingUsers = waitingUsers[1:]
+	pair := waitingChannels[0]
+	waitingChannels = waitingChannels[1:]
 	return pair
 }
 
 func createChannel() {
 	messageChannel := make(chan *discordgo.MessageCreate)
-    linkPattern, _ := regexp.Compile(`[a-z]+[:.].*`)
+	linkPattern, _ := regexp.Compile(`[a-z]+[:.].*`)
 	s.AddHandler(func(_ *discordgo.Session, m *discordgo.MessageCreate) {
 		if !m.Author.Bot {
-			if pairs[m.ChannelID] != "" {
-                if !linkPattern.MatchString(m.Content) {
-                    messageChannel <- m
-                }
+			if pairedChannels[m.ChannelID] != "" {
+				if !linkPattern.MatchString(m.Content) {
+					messageChannel <- m
+				}
 			}
 		}
 	})
 	go func() {
 		for {
 			m := <-messageChannel
-            _, err := s.ChannelMessageSend(pairs[m.ChannelID], fmt.Sprintf("Stranger: %s", m.Content))
+			_, err := s.ChannelMessageSend(pairedChannels[m.ChannelID], fmt.Sprintf("Stranger: %s", m.Content))
 			if err != nil {
 				fmt.Println("error sending message: ", err)
 				return

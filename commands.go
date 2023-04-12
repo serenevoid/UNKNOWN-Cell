@@ -1,8 +1,10 @@
 package main
 
 import (
-	"github.com/bwmarrin/discordgo"
 	"log"
+	"time"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 var (
@@ -20,6 +22,14 @@ var (
 			Name:        "end",
 			Description: "Disconnects you from the current chat.",
 		},
+		{
+			Name:        "report",
+			Description: "Reports the stranger and disconnects chat.",
+		},
+		{
+			Name:        "reveal",
+			Description: "Reveals the stranger's tag to you so that you can connect on discord.",
+		},
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
@@ -32,7 +42,18 @@ var (
 			})
 		},
 		"chat": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			for _, v := range waitingUsers {
+			if (time.Now().YearDay() - bannedUsers[i.User.ID]) > 2 {
+				delete(bannedUsers, i.User.ID)
+			} else {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Please wait till the soft ban lifts. Try to be kind from next time if you did something wrong.",
+					},
+				})
+				return
+			}
+			for _, v := range waitingChannels {
 				if v == i.ChannelID {
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -40,12 +61,12 @@ var (
 							Content: "You are already in the waiting list.",
 						},
 					})
-                    return
+					return
 				}
 			}
 			if pair := getPair(); pair != "" {
-				pairs[i.ChannelID] = pair
-				pairs[pair] = i.ChannelID
+				pairedChannels[i.ChannelID] = pair
+				pairedChannels[pair] = i.ChannelID
 				s.ChannelMessageSend(pair, "You are connected with another user. Say Hello!")
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -54,7 +75,8 @@ var (
 					},
 				})
 			} else {
-				waitingUsers = append(waitingUsers, i.ChannelID)
+				waitingChannels = append(waitingChannels, i.ChannelID)
+				channelUserMap[i.ChannelID] = i.User.ID
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
@@ -64,9 +86,9 @@ var (
 			}
 		},
 		"end": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			for index, v := range waitingUsers {
+			for index, v := range waitingChannels {
 				if v == i.ChannelID {
-					waitingUsers = append(waitingUsers[:index], waitingUsers[index+1:]...)
+					waitingChannels = append(waitingChannels[:index], waitingChannels[index+1:]...)
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{
@@ -75,9 +97,10 @@ var (
 					})
 				}
 			}
-			if pair := pairs[i.ChannelID]; pair != "" {
-				delete(pairs, i.ChannelID)
-				delete(pairs, pair)
+			if pair := pairedChannels[i.ChannelID]; pair != "" {
+				delete(pairedChannels, i.ChannelID)
+				delete(pairedChannels, pair)
+				delete(channelUserMap, i.ChannelID)
 				s.ChannelMessageSend(pair, "The other user ended the chat.")
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -86,6 +109,28 @@ var (
 					},
 				})
 			}
+		},
+		"report": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			pair := pairedChannels[i.ChannelID]
+			user := channelUserMap[pair]
+			reportedUsers[user] += 1
+			if reportedUsers[user] > 4 {
+				bannedUsers[user] = time.Now().YearDay()
+			}
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "The user has been reported.",
+				},
+			})
+		},
+		"reveal": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "pong",
+				},
+			})
 		},
 	}
 )
