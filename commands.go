@@ -1,13 +1,13 @@
 package main
 
 import (
-    "log"
 	"github.com/bwmarrin/discordgo"
+	"log"
 )
 
 var (
 	registeredCommands = make([]*discordgo.ApplicationCommand, len(commands))
-	commands = []*discordgo.ApplicationCommand{
+	commands           = []*discordgo.ApplicationCommand{
 		{
 			Name:        "ping",
 			Description: "Responds with pong to confirm connectivity.",
@@ -32,6 +32,17 @@ var (
 			})
 		},
 		"chat": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			for _, v := range waitingUsers {
+				if v == i.ChannelID {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "You are already in the waiting list.",
+						},
+					})
+                    return
+				}
+			}
 			if pair := getPair(); pair != "" {
 				pairs[i.ChannelID] = pair
 				pairs[pair] = i.ChannelID
@@ -53,6 +64,17 @@ var (
 			}
 		},
 		"end": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			for index, v := range waitingUsers {
+				if v == i.ChannelID {
+					waitingUsers = append(waitingUsers[:index], waitingUsers[index+1:]...)
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "Chat ended.",
+						},
+					})
+				}
+			}
 			if pair := pairs[i.ChannelID]; pair != "" {
 				delete(pairs, i.ChannelID)
 				delete(pairs, pair)
