@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -30,108 +29,19 @@ var (
 			Name:        "reveal",
 			Description: "Reveals the stranger's tag to you so that you can connect on discord.",
 		},
+		{
+			Name:        "help",
+			Description: "Provides the list of available slash commands and their uses.",
+		},
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"ping": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "pong",
-				},
-			})
-		},
-		"chat": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if (time.Now().YearDay() - bannedUsers[i.User.ID]) > 2 {
-				delete(bannedUsers, i.User.ID)
-			} else {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Please wait till the soft ban lifts. Try to be kind from next time if you did something wrong.",
-					},
-				})
-				return
-			}
-			for _, v := range waitingChannels {
-				if v == i.ChannelID {
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "You are already in the waiting list.",
-						},
-					})
-					return
-				}
-			}
-			if pair := getPair(); pair != "" {
-				pairedChannels[i.ChannelID] = pair
-				pairedChannels[pair] = i.ChannelID
-				s.ChannelMessageSend(pair, "You are connected with another user. Say Hello!")
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "You are connected with another user. Say Hello!",
-					},
-				})
-			} else {
-				waitingChannels = append(waitingChannels, i.ChannelID)
-				channelUserMap[i.ChannelID] = i.User.ID
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Checking for another user...",
-					},
-				})
-			}
-		},
-		"end": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			for index, v := range waitingChannels {
-				if v == i.ChannelID {
-					waitingChannels = append(waitingChannels[:index], waitingChannels[index+1:]...)
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "Chat ended.",
-						},
-					})
-				}
-			}
-			if pair := pairedChannels[i.ChannelID]; pair != "" {
-				delete(pairedChannels, i.ChannelID)
-				delete(pairedChannels, pair)
-				delete(channelUserMap, i.ChannelID)
-				s.ChannelMessageSend(pair, "The other user ended the chat.")
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Chat ended.",
-					},
-				})
-			}
-		},
-		"report": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			pair := pairedChannels[i.ChannelID]
-			user := channelUserMap[pair]
-			reportedUsers[user] += 1
-			if reportedUsers[user] > 4 {
-				bannedUsers[user] = time.Now().YearDay()
-			}
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "The user has been reported.",
-				},
-			})
-		},
-		"reveal": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "pong",
-				},
-			})
-		},
+		"ping":   ping,
+		"chat":   createChat,
+		"end":    endChat,
+		"report": reportUser,
+		"reveal": revealUser,
+		"help":   showHelp,
 	}
 )
 
@@ -163,4 +73,31 @@ func removeCommands() {
 		}
 	}
 	log.Println("Gracefully shutting down.")
+}
+
+func ping(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "pong",
+		},
+	})
+}
+
+func showHelp(s *discordgo.Session, i *discordgo.InteractionCreate) {
+    message := "**List of available commands**\n```"
+	for index, command := range commands {
+        message = message + command.Name + " - " + command.Description
+        if index != len(commands) - 1 {
+            message = message + "\n"
+        } else {
+            message = message + "```"
+        }
+	}
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: message,
+		},
+	})
 }
