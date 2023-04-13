@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strconv"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -12,6 +13,10 @@ var (
 		{
 			Name:        "ping",
 			Description: "Responds with pong to confirm connectivity.",
+		},
+		{
+			Name:        "stats",
+			Description: "Displays the stats about the bot.",
 		},
 		{
 			Name:        "chat",
@@ -37,6 +42,7 @@ var (
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"ping":   ping,
+		"stats":   showStats,
 		"chat":   createChat,
 		"end":    endChat,
 		"report": reportUser,
@@ -80,6 +86,16 @@ func ping(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "pong",
+		},
+	})
+}
+
+func showStats(s *discordgo.Session, i *discordgo.InteractionCreate) {
+    stats := "```Total Users: " + strconv.Itoa(len(pairedChannels)) + "```"
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: stats,
 		},
 	})
 }
