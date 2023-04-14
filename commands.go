@@ -11,12 +11,8 @@ var (
 	registeredCommands = make([]*discordgo.ApplicationCommand, len(commands))
 	commands           = []*discordgo.ApplicationCommand{
 		{
-			Name:        "ping",
-			Description: "Responds with pong to confirm connectivity.",
-		},
-		{
-			Name:        "stats",
-			Description: "Displays the stats about the bot.",
+			Name:        "subscribers",
+			Description: "Displays the total number of people subscribed to the bot.",
 		},
 		{
 			Name:        "chat",
@@ -41,8 +37,7 @@ var (
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"ping":   ping,
-		"stats":   showStats,
+		"stats":  showStats,
 		"chat":   createChat,
 		"end":    endChat,
 		"report": reportUser,
@@ -81,17 +76,8 @@ func removeCommands() {
 	log.Println("Gracefully shutting down.")
 }
 
-func ping(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: "pong",
-		},
-	})
-}
-
 func showStats(s *discordgo.Session, i *discordgo.InteractionCreate) {
-    stats := "```Total Users: " + strconv.Itoa(len(pairedChannels)) + "```"
+	stats := "```Total Users: " + strconv.Itoa(len(pairedChannels)) + "```"
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
@@ -101,19 +87,33 @@ func showStats(s *discordgo.Session, i *discordgo.InteractionCreate) {
 }
 
 func showHelp(s *discordgo.Session, i *discordgo.InteractionCreate) {
-    message := "**List of available commands**\n```"
-	for index, command := range commands {
-        message = message + command.Name + " - " + command.Description
-        if index != len(commands) - 1 {
-            message = message + "\n"
-        } else {
-            message = message + "```"
-        }
+	message := ""
+	for _, command := range commands {
+		message = message + "`" + command.Name + "` "
 	}
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: message,
+    s.InteractionResponseDelete(i.Interaction)
+	embed := &discordgo.MessageEmbed{
+		Title:       "UNKNOWN Cell",
+		Description: "Welcome UNKNOWN telecom services",
+		Color:       0xc0c0c0,
+		Image: &discordgo.MessageEmbedImage{
+			URL: "https://cdn.discordapp.com/icons/1096023447605358632/d40e3f9dba42ff6810535fbe64ebc1ee.webp",
 		},
-	})
+		Fields: []*discordgo.MessageEmbedField{
+			&discordgo.MessageEmbedField{
+				Name:   "List of commands",
+				Value:  message,
+				Inline: false,
+			},
+			&discordgo.MessageEmbedField{
+				Name:   "Links",
+				Value:  "[Invite me](https://discord.com/oauth2/authorize?client_id=1096026189811957801&permissions=19456&scope=bot) - [Support Server](https://discord.gg/mQmKudUznv)",
+				Inline: false,
+			},
+		},
+	}
+	_, err := s.ChannelMessageSendEmbed(i.ChannelID, embed)
+	if err != nil {
+		log.Fatal("Cannot send embed")
+	}
 }
