@@ -11,10 +11,6 @@ var (
 	registeredCommands = make([]*discordgo.ApplicationCommand, len(commands))
 	commands           = []*discordgo.ApplicationCommand{
 		{
-			Name:        "subscribers",
-			Description: "Displays the total number of people subscribed to the bot.",
-		},
-		{
 			Name:        "chat",
 			Description: "Connects you to a random user or a server.",
 		},
@@ -32,17 +28,16 @@ var (
 		},
 		{
 			Name:        "help",
-			Description: "Provides the list of available slash commands and their uses.",
+			Description: "Displays help box.",
 		},
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"stats":  showStats,
-		"chat":   createChat,
-		"end":    endChat,
-		"report": reportUser,
-		"reveal": revealUser,
-		"help":   showHelp,
+		"chat":        createChat,
+		"end":         endChat,
+		"report":      reportUser,
+		"reveal":      revealUser,
+		"help":        showHelp,
 	}
 )
 
@@ -77,7 +72,8 @@ func removeCommands() {
 }
 
 func showStats(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	stats := "```Total Users: " + strconv.Itoa(len(pairedChannels)) + "```"
+	stats := "```Total Subscribers: " + strconv.Itoa(len(pairedChannels)) + 
+    "\nTotal Active Users: " + strconv.Itoa(len(pairedChannels)) + "```"
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
@@ -91,18 +87,22 @@ func showHelp(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	for _, command := range commands {
 		message = message + "`" + command.Name + "` "
 	}
-    s.InteractionResponseDelete(i.Interaction)
 	embed := &discordgo.MessageEmbed{
 		Title:       "UNKNOWN Cell",
-		Description: "Welcome UNKNOWN telecom services",
-		Color:       0xc0c0c0,
-		Image: &discordgo.MessageEmbedImage{
-			URL: "https://cdn.discordapp.com/icons/1096023447605358632/d40e3f9dba42ff6810535fbe64ebc1ee.webp",
-		},
+		Description: "Welcome UNKNOWN telecom services.\nWe connect your calls to random users.",
+		Color:       0x008080,
+        Image: &discordgo.MessageEmbedImage{
+            URL: "https://cdn.discordapp.com/app-icons/962387295250563092/ff587500912ce378b6672aa7a4997cd4.png",
+        },
 		Fields: []*discordgo.MessageEmbedField{
 			&discordgo.MessageEmbedField{
 				Name:   "List of commands",
 				Value:  message,
+				Inline: false,
+			},
+			&discordgo.MessageEmbedField{
+				Name:   "Stats",
+                Value:  "Total Subscriptions: " + strconv.Itoa(0) + "\nTotal Active Users: " + strconv.Itoa(0) + "\n",
 				Inline: false,
 			},
 			&discordgo.MessageEmbedField{
@@ -112,8 +112,10 @@ func showHelp(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			},
 		},
 	}
-	_, err := s.ChannelMessageSendEmbed(i.ChannelID, embed)
-	if err != nil {
-		log.Fatal("Cannot send embed")
-	}
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+            Embeds: []*discordgo.MessageEmbed{embed},
+		},
+	})
 }
