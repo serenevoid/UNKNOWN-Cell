@@ -1,28 +1,23 @@
-package main
+package channel
 
 import (
 	"fmt"
 	"regexp"
-	"time"
+	"unknown/db"
+	"unknown/session"
+	"unknown/utils"
 
 	"github.com/bwmarrin/discordgo"
 )
 
-var (
-	waitingChannels = make([]string, 0)
-	pairedChannels  = make(map[string]string)
-	channelUserMap  = make(map[string]string)
-	reportedUsers   = make(map[string]int)
-	bannedUsers     = make(map[string]int)
-)
-
-func createChannel() {
+func CreateChannel() {
 	messageChannel := make(chan *discordgo.MessageCreate)
 	linkPattern, _ := regexp.Compile(`[a-z]+[:.].*`)
 	tagPattern, _ := regexp.Compile(`.{3,32}#[0-9]{4}`)
+	s := session.GetSession()
 	s.AddHandler(func(_ *discordgo.Session, m *discordgo.MessageCreate) {
 		if !m.Author.Bot {
-			if pairedChannels[m.ChannelID] != "" {
+			if db.ViewConnection(m.ChannelID) != "" {
 				if !linkPattern.MatchString(m.Content) {
 					if !tagPattern.MatchString(m.Content) {
 						messageChannel <- m
@@ -34,21 +29,21 @@ func createChannel() {
 	go func() {
 		for {
 			m := <-messageChannel
-			_, err := s.ChannelMessageSend(pairedChannels[m.ChannelID], fmt.Sprintf("Stranger: %s", m.Content))
+			// TODO: For Group Chats add number to stranger
+			_, err := s.ChannelMessageSend(db.ViewConnection(m.ChannelID), fmt.Sprintf("Stranger: %s", m.Content))
 			if err != nil {
 				fmt.Println("error sending message: ", err)
-				return
 			}
 		}
 	}()
 }
 
-func createChat(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	userID := getUserID(i)
-	if isBanned(userID, s, i) {
+func CreateChat(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	userID := utils.GetUserID(i)
+	if db.IsBanned(userID) {
 		return
 	}
-	if isWaiting(i.ChannelID) != -1 {
+	if db.IsWaiting(i.ChannelID) != -1 {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
@@ -57,17 +52,23 @@ func createChat(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		})
 		return
 	}
-	if pair := getPair(); pair != "" {
-		setPair(i.ChannelID, pair, i)
+	if pair := utils.GetPair(); pair != "" {
+		utils.SetPair(i.ChannelID, pair, i)
 	} else {
-		addToWaitList(userID, s, i)
+		db.PushWaitList(i.ChannelID)
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Please wait till another user hops in.",
+			},
+		})
 	}
 }
 
-func endChat(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	if index := isWaiting(i.ChannelID); index != -1 {
-		waitingChannels = append(waitingChannels[:index], waitingChannels[index+1:]...)
-		delete(channelUserMap, i.ChannelID)
+func EndChat(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	if index := db.IsWaiting(i.ChannelID); index != -1 {
+		db.RemoveWaitList(index)
+		db.RemoveChannelUser(i.ChannelID)
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
@@ -75,19 +76,16 @@ func endChat(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			},
 		})
 	}
-	if pair := pairedChannels[i.ChannelID]; pair != "" {
-		unsetPair(i.ChannelID, pair, s, i)
+	if pair := db.ViewConnection(i.ChannelID); pair != "" {
+		utils.UnsetPair(i.ChannelID, pair, i)
 	}
 }
 
-func revealUser(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	if pair := pairedChannels[i.ChannelID]; pair != "" {
+func RevealUser(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	if pair := db.ViewConnection(i.ChannelID); pair != "" {
 		s.ChannelMessageSend(pair, "The stranger has chosen to reveal their discord tag to you.")
-		if i.GuildID != "" {
-			s.ChannelMessageSend(pair, i.Member.User.Username+"#"+i.Member.User.Discriminator)
-		} else {
-			s.ChannelMessageSend(pair, i.User.Username+"#"+i.User.Discriminator)
-		}
+		tag := utils.GetUserTag(i)
+		s.ChannelMessageSend(pair, tag)
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
@@ -97,15 +95,12 @@ func revealUser(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 }
 
-func reportUser(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	pair := pairedChannels[i.ChannelID]
-	user := channelUserMap[pair]
-	reportedUsers[user] += 1
-	if reportedUsers[user] > 4 {
-		bannedUsers[user] = time.Now().YearDay()
-	}
-	if pair := pairedChannels[i.ChannelID]; pair != "" {
-		unsetPair(i.ChannelID, pair, s, i)
+func ReportUser(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	pair := db.ViewConnection(i.ChannelID)
+	user := db.ViewChannelUser(i.ChannelID)
+	db.ReportUser(user)
+	if pair != "" {
+		utils.UnsetPair(i.ChannelID, pair, i)
 		s.ChannelMessageSend(pair, "The other user ended the chat.")
 	}
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{

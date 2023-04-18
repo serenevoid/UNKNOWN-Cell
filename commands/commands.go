@@ -1,0 +1,71 @@
+package commands
+
+import (
+	"log"
+	"unknown/channel"
+	"unknown/session"
+
+	"github.com/bwmarrin/discordgo"
+)
+
+var (
+	registeredCommands = []*discordgo.ApplicationCommand{}
+	commands           = []*discordgo.ApplicationCommand{
+		{
+			Name:        "chat",
+			Description: "Connects you to a random user or a server.",
+		},
+		{
+			Name:        "end",
+			Description: "Disconnects you from the current chat.",
+		},
+		{
+			Name:        "report",
+			Description: "Reports the stranger and disconnects chat.",
+		},
+		{
+			Name:        "reveal",
+			Description: "Reveals the stranger's tag to you so that you can connect on discord.",
+		},
+	}
+
+	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+		"chat":        channel.CreateChat,
+		"end":         channel.EndChat,
+		"report":      channel.ReportUser,
+		"reveal":      channel.RevealUser,
+	}
+)
+
+func AddCommandHandlers() {
+    s := session.GetSession()
+	s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
+			h(s, i)
+		}
+	})
+}
+
+func AddCommands() {
+	log.Println("Adding commands...")
+    s := session.GetSession()
+	for _, v := range commands {
+		cmd, err := s.ApplicationCommandCreate(s.State.User.ID, "", v)
+		if err != nil {
+			log.Panicf("Cannot create '%v' command: %v", v.Name, err)
+		}
+        registeredCommands = append(registeredCommands, cmd)
+	}
+}
+
+func RemoveCommands() {
+	log.Println("Removing commands...")
+    s := session.GetSession()
+	for _, v := range registeredCommands {
+		err := s.ApplicationCommandDelete(s.State.User.ID, "", v.ID)
+		if err != nil {
+			log.Panicf("Cannot delete '%v' command: %v", v.Name, err)
+		}
+	}
+	log.Println("Gracefully shutting down.")
+}

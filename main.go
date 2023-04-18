@@ -1,12 +1,18 @@
 package main
 
+import (
+	"unknown/channel"
+	"unknown/commands"
+	"unknown/session"
+)
+
 func main() {
-	createSession()
-	addCommandHandlers()
-	createSocketConnection()
-	addCommands()
-	defer s.Close()
-	createChannel()
-	setupInterrupt()
-	removeCommands()
+	session.GetSession()
+	commands.AddCommandHandlers()
+	session.CreateSocketConnection()
+	commands.AddCommands()
+	defer session.GetSession().Close()
+	channel.CreateChannel()
+	session.SetupInterrupt()
+	commands.RemoveCommands()
 }
