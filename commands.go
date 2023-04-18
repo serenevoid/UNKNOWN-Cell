@@ -11,6 +11,10 @@ var (
 	registeredCommands = make([]*discordgo.ApplicationCommand, len(commands))
 	commands           = []*discordgo.ApplicationCommand{
 		{
+			Name:        "register",
+			Description: "Registers current channel for the Cell.",
+		},
+		{
 			Name:        "chat",
 			Description: "Connects you to a random user or a server.",
 		},
@@ -33,6 +37,7 @@ var (
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+        "register":     registerChannel,
 		"chat":        createChat,
 		"end":         endChat,
 		"report":      reportUser,
@@ -95,17 +100,18 @@ func showHelp(s *discordgo.Session, i *discordgo.InteractionCreate) {
             URL: "https://cdn.discordapp.com/app-icons/962387295250563092/ff587500912ce378b6672aa7a4997cd4.png",
         },
 		Fields: []*discordgo.MessageEmbedField{
-			&discordgo.MessageEmbedField{
+			{
 				Name:   "List of commands",
 				Value:  message,
 				Inline: false,
 			},
-			&discordgo.MessageEmbedField{
+			{
 				Name:   "Stats",
-                Value:  "Total Subscriptions: " + strconv.Itoa(0) + "\nTotal Active Users: " + strconv.Itoa(0) + "\n",
+                Value:  "Total Users: " + strconv.Itoa(0) + 
+                "\nTotal Active Users: " + strconv.Itoa(0) + "\n",
 				Inline: false,
 			},
-			&discordgo.MessageEmbedField{
+			{
 				Name:   "Links",
 				Value:  "[Invite me](https://discord.com/oauth2/authorize?client_id=1096026189811957801&permissions=19456&scope=bot) - [Support Server](https://discord.gg/mQmKudUznv)",
 				Inline: false,
@@ -116,6 +122,17 @@ func showHelp(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
             Embeds: []*discordgo.MessageEmbed{embed},
+		},
+	})
+}
+
+func registerChannel(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	stats := "```Total Subscribers: " + strconv.Itoa(len(pairedChannels)) + 
+    "\nTotal Active Users: " + strconv.Itoa(len(pairedChannels)) + "```"
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: stats,
 		},
 	})
 }
