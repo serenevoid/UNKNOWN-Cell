@@ -2,7 +2,6 @@ package commands
 
 import (
 	"log"
-	"unknown/channel"
 	"unknown/session"
 
 	"github.com/bwmarrin/discordgo"
@@ -10,31 +9,8 @@ import (
 
 var (
 	registeredCommands = []*discordgo.ApplicationCommand{}
-	commands           = []*discordgo.ApplicationCommand{
-		{
-			Name:        "chat",
-			Description: "Connects you to a random user or a server.",
-		},
-		{
-			Name:        "end",
-			Description: "Disconnects you from the current chat.",
-		},
-		{
-			Name:        "report",
-			Description: "Reports the stranger and disconnects chat.",
-		},
-		{
-			Name:        "reveal",
-			Description: "Reveals the stranger's tag to you so that you can connect on discord.",
-		},
-	}
-
-	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"chat":        channel.CreateChat,
-		"end":         channel.EndChat,
-		"report":      channel.ReportUser,
-		"reveal":      channel.RevealUser,
-	}
+	commands           = []*discordgo.ApplicationCommand{}
+	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){}
 )
 
 func AddCommandHandlers() {

@@ -51,6 +51,7 @@ var (
 	waitList       = make([]string, 0)
 	connectionMap  = make(map[string]string)
 	channelUserMap = make(map[string]string)
+	tempUserMap    = make(map[string][]string)
 	reportList     = make(map[string]int)
 	banList        = make(map[string]int)
 )
@@ -69,7 +70,7 @@ func PopWaitList() string {
 }
 
 func RemoveWaitList(index int) {
-    waitList = append(waitList[0:index], waitList[index + 1:]...)
+	waitList = append(waitList[0:index], waitList[index+1:]...)
 }
 
 func AddConnection(user1 string, user2 string) {
@@ -78,7 +79,7 @@ func AddConnection(user1 string, user2 string) {
 }
 
 func ViewConnection(user string) string {
-    return connectionMap[user]
+	return connectionMap[user]
 }
 
 func RemoveConnection(user1 string, user2 string) {
@@ -91,11 +92,30 @@ func AddChannelUser(channelID string, userID string) {
 }
 
 func ViewChannelUser(channelID string) string {
-    return channelUserMap[channelID]
+	return channelUserMap[channelID]
 }
 
 func RemoveChannelUser(channelID string) {
 	delete(channelUserMap, channelID)
+}
+
+func addTempUsers(channelID string, userID string) {
+    tempUserMap[channelID] = append(tempUserMap[channelID], userID)
+}
+
+func GetTempUserIndex(channelID string, userID string) int {
+    for index, value := range tempUserMap[channelID] {
+        if value == userID {
+            return index + 1
+        }
+    }
+    addTempUsers(channelID, userID)
+    log.Println(tempUserMap)
+    return len(tempUserMap[channelID])
+}
+
+func RemoveTempUsers(channelID string) {
+    delete(tempUserMap, channelID)
 }
 
 func ReportUser(userID string) {
@@ -127,10 +147,10 @@ func IsBanned(userID string) bool {
 }
 
 func IsWaiting(userID string) int {
-    for index, value := range waitList {
-        if value == userID {
-            return index
-        }
-    }
-    return -1
+	for index, value := range waitList {
+		if value == userID {
+			return index
+		}
+	}
+	return -1
 }
