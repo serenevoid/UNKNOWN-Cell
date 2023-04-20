@@ -12,7 +12,7 @@ func init() {
 	commands = append(commands,
 		&discordgo.ApplicationCommand{
 			Name:        "subscribe",
-			Description: "Subscribe to get good chance of getting connections. Will start receiving calls.",
+			Description: "Subscribe to recieve calls.",
 		},
 		&discordgo.ApplicationCommand{
 			Name:        "unsubscribe",

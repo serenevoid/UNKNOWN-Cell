@@ -11,19 +11,19 @@ func init() {
 	commands = append(commands,
 		&discordgo.ApplicationCommand{
 			Name:        "chat",
-			Description: "Connects you to a random user or a server.",
+			Description: "Connect to a random user.",
 		},
 		&discordgo.ApplicationCommand{
 			Name:        "end",
-			Description: "Disconnects you from the current chat.",
+			Description: "Disconnect from the current chat.",
 		},
 		&discordgo.ApplicationCommand{
 			Name:        "report",
-			Description: "Reports the stranger and disconnects chat.",
+			Description: "Report the stranger and disconnect the chat.",
 		},
 		&discordgo.ApplicationCommand{
 			Name:        "reveal",
-			Description: "Reveals the stranger's tag to you so that you can connect on discord.",
+			Description: "Reveals your discord tag to the stranger.",
 		},
 	)
 	commandHandlers["help"] = showHelp
