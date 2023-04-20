@@ -118,7 +118,6 @@ func GetRandomSubscribers(channelID string, ring func(string)) {
 
 		// Ring the selected keys
 		for key := range selectedKeys {
-            log.Println("Keys ", key)
             if channelID != key {
                 ring(key)
             }
