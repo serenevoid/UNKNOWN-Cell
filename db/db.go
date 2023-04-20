@@ -13,7 +13,7 @@ var db *bolt.DB
 
 func init() {
 	var err error
-	db, err = bolt.Open("UNKNOWN", 0600, nil)
+	db, err = bolt.Open("UNKNOWN.db", 0600, nil)
 	if err != nil {
 		log.Panic("Cannot create DB")
 	}
@@ -128,6 +128,27 @@ func GetRandomSubscribers(ring func(string)) {
 	}
 }
 
+func GetKeyCount(bucketName string) int {
+    count := 0
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(bucketName))
+		if bucket == nil {
+			log.Panic("Bucket not found")
+		}
+
+		// Count the number of keys in the bucket
+		bucket.ForEach(func(_, _ []byte) error {
+			count++
+			return nil
+		})
+		return nil
+	})
+	if err != nil {
+		log.Panic("Cannot count Subscribers")
+	}
+    return count
+}
+
 /* ---- IN MEMORY DB FUNCTIONS ---- */
 var (
 	waitList       = make([]string, 0)
@@ -162,6 +183,10 @@ func AddConnection(user1 string, user2 string) {
 
 func ViewConnection(user string) string {
 	return connectionMap[user]
+}
+
+func GetConnectionCount() int {
+	return len(connectionMap)
 }
 
 func RemoveConnection(user1 string, user2 string) {
