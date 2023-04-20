@@ -48,9 +48,9 @@ func showAbout(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			},
 			{
 				Name: "Stats",
-				Value: "Total Subscribers: " + strconv.Itoa(db.GetKeyCount("Channels")) +
+				Value: "Total listed users: " + strconv.Itoa(db.GetKeyCount("Channels")) +
 					"\nTotal Servers: " + strconv.Itoa(db.GetKeyCount("Guilds")) +
-					"\nTotal Active Users: " + strconv.Itoa(db.GetConnectionCount()/2) + "\n" +
+					"\nTotal Active Users: " + strconv.Itoa(db.GetConnectionCount()) + "\n" +
 					"--------------------------------------------------------------------",
 				Inline: false,
 			},
@@ -112,8 +112,8 @@ func showHelp(s *discordgo.Session, i *discordgo.InteractionCreate) {
 				Inline: false,
 			},
 			{
-				Name:   "What is the subscription feature of the bot for?",
-				Value:  "The bot allows it's users to subcribe to the bidirectional calling feature. If you subscribe to this feature, you will recieve a notification from the bot when someone else tries to start a new chat. You can subscribe with `/subscribe` and to opt out, just use `/unsubscribe`.",
+				Name:   "What is the enlist feature of the bot for?",
+				Value:  "The bot allows it's users to enlist to the bidirectional calling feature. If you enlist to this feature, you will recieve a notification from the bot when someone else tries to start a new chat. You can enlist with `/enlist` and to opt out, just use `/delist`.",
 				Inline: false,
 			},
 			{
