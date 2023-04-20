@@ -63,7 +63,7 @@ func CreateChat(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	} else {
 		db.PushWaitList(i.ChannelID)
         if db.IsKeyPresentInBucket("Channels", i.ChannelID) {
-            db.GetRandomSubscribers(func(channelID string) {
+            db.GetRandomSubscribers(i.ChannelID, func(channelID string) {
                 s.ChannelMessageSend(channelID, "*beep beep*\nA random user is trying to connect. To respond, type the command `/chat`.")
             })
         }

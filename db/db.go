@@ -81,7 +81,7 @@ func IsKeyPresentInBucket(bucketName string, key string) bool {
 	return isPresent
 }
 
-func GetRandomSubscribers(ring func(string)) {
+func GetRandomSubscribers(channelID string, ring func(string)) {
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("Channels"))
 		if bucket == nil {
@@ -118,7 +118,10 @@ func GetRandomSubscribers(ring func(string)) {
 
 		// Ring the selected keys
 		for key := range selectedKeys {
-			ring(key)
+            log.Println("Keys ", key)
+            if channelID != key {
+                ring(key)
+            }
 		}
 
 		return nil
