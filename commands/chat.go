@@ -34,6 +34,7 @@ func init() {
 }
 
 func CreateChat(s *discordgo.Session, i *discordgo.InteractionCreate) {
+    // Verify if a connection already exists for the channel
 	if db.ViewConnection(i.ChannelID) != "" {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -47,6 +48,7 @@ func CreateChat(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	if db.IsBanned(userID) {
 		return
 	}
+    // Check if the channel is in the waiting list
 	if db.IsWaiting(i.ChannelID) != -1 {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -60,6 +62,11 @@ func CreateChat(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		utils.SetPair(i.ChannelID, pair, i)
 	} else {
 		db.PushWaitList(i.ChannelID)
+        if db.IsKeyPresentInBucket("Channels", i.ChannelID) {
+            db.GetRandomSubscribers(func(channelID string) {
+                s.ChannelMessageSend(channelID, "*beep beep*\nA random user is trying to connect. To respond, type the command `/chat`.")
+            })
+        }
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{

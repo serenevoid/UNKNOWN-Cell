@@ -1,24 +1,43 @@
 package db
 
 import (
-	"github.com/boltdb/bolt"
 	"log"
+	"math/rand"
 	"time"
+
+	"github.com/boltdb/bolt"
 )
 
 /* ---- BOLT DB FUNCTIONS ---- */
 var db *bolt.DB
 
-func GetDB() *bolt.DB {
+func init() {
 	var err error
 	db, err = bolt.Open("UNKNOWN", 0600, nil)
 	if err != nil {
 		log.Panic("Cannot create DB")
 	}
-	return db
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("Channels"))
+		if err != nil {
+			log.Panic("Cannot create bucket Channels")
+		}
+		_, err = tx.CreateBucketIfNotExists([]byte("Guilds"))
+		if err != nil {
+			log.Panic("Cannot create new bucket")
+		}
+		return err
+	})
+	if err != nil {
+		log.Panic("Cannot update bucket to write")
+	}
 }
 
-func PutDB(db *bolt.DB, bucketName string, key string, value []byte) {
+func CloseDB() {
+	db.Close()
+}
+
+func InsertDataToBucket(bucketName string, key string, value []byte) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(bucketName))
 		if err != nil {
@@ -32,18 +51,81 @@ func PutDB(db *bolt.DB, bucketName string, key string, value []byte) {
 	}
 }
 
-func ViewDB(bucketName string, key string) []byte {
-	var value []byte
+func DeleteDataFromBucket(bucketName string, key string) {
+	err := db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(bucketName))
+		err := bucket.Delete([]byte(key))
+		if err != nil {
+			log.Panic("Cannot delete key from DB")
+		}
+		return nil
+	})
+	if err != nil {
+		log.Panic("Cannot open DB todelete key")
+	}
+}
+
+func IsKeyPresentInBucket(bucketName string, key string) bool {
+	isPresent := false
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucketName))
-		value = bucket.Get([]byte(key))
+		if bucket.Get([]byte(key)) != nil {
+			isPresent = true
+		}
 		return nil
 	})
 	if err != nil {
 		log.Panic("Cannot read from DB")
-		return []byte{}
+		return false
 	}
-	return value
+	return isPresent
+}
+
+func GetRandomSubscribers(ring func(string)) {
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("Channels"))
+		if bucket == nil {
+			log.Panic("Bucket not found")
+		}
+
+		// Count the number of keys in the bucket
+		count := 0
+		bucket.ForEach(func(_, _ []byte) error {
+			count++
+			return nil
+		})
+
+		// Select 9 random keys
+		rand.Seed(time.Now().UnixNano())
+		selectedKeys := make(map[string]bool)
+		for len(selectedKeys) < 9 && count > 0 {
+			// Generate a random key index
+			index := rand.Intn(count)
+
+			// Iterate over the keys and select the key at the random index
+			i := 0
+			bucket.ForEach(func(k, _ []byte) error {
+				if i == index {
+					selectedKeys[string(k)] = true
+				}
+				i++
+				return nil
+			})
+
+			// Decrement the count
+			count--
+		}
+
+		// Ring the selected keys
+		for key := range selectedKeys {
+			ring(key)
+		}
+
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
 }
 
 /* ---- IN MEMORY DB FUNCTIONS ---- */
@@ -100,22 +182,21 @@ func RemoveChannelUser(channelID string) {
 }
 
 func addTempUsers(channelID string, userID string) {
-    tempUserMap[channelID] = append(tempUserMap[channelID], userID)
+	tempUserMap[channelID] = append(tempUserMap[channelID], userID)
 }
 
 func GetTempUserIndex(channelID string, userID string) int {
-    for index, value := range tempUserMap[channelID] {
-        if value == userID {
-            return index + 1
-        }
-    }
-    addTempUsers(channelID, userID)
-    log.Println(tempUserMap)
-    return len(tempUserMap[channelID])
+	for index, value := range tempUserMap[channelID] {
+		if value == userID {
+			return index + 1
+		}
+	}
+	addTempUsers(channelID, userID)
+	return len(tempUserMap[channelID])
 }
 
 func RemoveTempUsers(channelID string) {
-    delete(tempUserMap, channelID)
+	delete(tempUserMap, channelID)
 }
 
 func ReportUser(userID string) {
