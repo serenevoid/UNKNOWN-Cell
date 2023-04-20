@@ -11,16 +11,16 @@ import (
 func init() {
 	commands = append(commands,
 		&discordgo.ApplicationCommand{
-			Name:        "subscribe",
-			Description: "Subscribe to recieve calls.",
+			Name:        "enlist",
+			Description: "Enlists channel to recieve calls.",
 		},
 		&discordgo.ApplicationCommand{
-			Name:        "unsubscribe",
-			Description: "Unsubscribe from receiving calls.",
+			Name:        "delist",
+			Description: "Delist channel from receiving calls.",
 		},
 	)
-	commandHandlers["subscribe"] = subscribeChannel
-	commandHandlers["unsubscribe"] = unsubscribeChannel
+	commandHandlers["enlist"] = subscribeChannel
+	commandHandlers["delist"] = unsubscribeChannel
 }
 
 func subscribeChannel(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -55,7 +55,7 @@ func subscribeChannel(s *discordgo.Session, i *discordgo.InteractionCreate) {
 }
 
 func unsubscribeChannel(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	if db.IsKeyPresentInBucket("Channels", i.ChannelID) {
+	if !db.IsKeyPresentInBucket("Channels", i.ChannelID) {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
