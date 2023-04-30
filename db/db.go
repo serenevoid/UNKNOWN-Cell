@@ -8,7 +8,7 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-/* ---- BOLT DB FUNCTIONS ---- */
+/* ---- PERSISTENT BOLT DB ---- */
 var db *bolt.DB
 
 func init() {
@@ -151,7 +151,7 @@ func GetKeyCount(bucketName string) int {
     return count
 }
 
-/* ---- IN MEMORY DB FUNCTIONS ---- */
+/* ---- IN MEMORY DB ---- */
 var (
 	waitList       = make([]string, 0)
 	connectionMap  = make(map[string]string)

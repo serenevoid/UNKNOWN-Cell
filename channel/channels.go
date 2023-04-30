@@ -11,7 +11,7 @@ import (
 )
 
 func CreateChannel() {
-	messageChannel := make(chan *discordgo.MessageCreate)
+	messageChannel := make(chan *discordgo.MessageCreate, 1000)
 	linkPattern, _ := regexp.Compile(`[a-z]+[:.].*`)
 	tagPattern, _ := regexp.Compile(`.{3,32}#[0-9]{4}`)
 	s := session.GetSession()
@@ -21,7 +21,11 @@ func CreateChannel() {
 				if !linkPattern.MatchString(m.Content) {
 					if !tagPattern.MatchString(m.Content) {
 						messageChannel <- m
+					} else {
+						s.ChannelMessageSend(m.ChannelID, "Please do not share tags over the call. Type `/reveal` to reveal your user tag.")
 					}
+				} else {
+					s.ChannelMessageSend(m.ChannelID, "Please do not share any links over the call.")
 				}
 			}
 		}
@@ -29,15 +33,19 @@ func CreateChannel() {
 	go func() {
 		for {
 			m := <-messageChannel
-			name := "Stranger"
-			if m.GuildID != "" {
-				name = name + strconv.Itoa(db.GetTempUserIndex(m.ChannelID, m.Author.ID))
-			}
-			_, err := s.ChannelMessageSend(db.ViewConnection(m.ChannelID),
-				fmt.Sprintf("%s: %s", name, m.Content))
-			if err != nil {
-				fmt.Println("error sending message: ", err)
-			}
+            go sendMessage(s, m)
 		}
 	}()
+}
+
+func sendMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
+	name := "Stranger"
+	if m.GuildID != "" {
+		name = name + strconv.Itoa(db.GetTempUserIndex(m.ChannelID, m.Author.ID))
+	}
+	_, err := s.ChannelMessageSend(db.ViewConnection(m.ChannelID),
+		fmt.Sprintf("%s: %s", name, m.Content))
+	if err != nil {
+		fmt.Println("error sending message: ", err)
+	}
 }
