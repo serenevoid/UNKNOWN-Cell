@@ -34,7 +34,7 @@ func init() {
 }
 
 func CreateChat(s *discordgo.Session, i *discordgo.InteractionCreate) {
-    // Verify if a connection already exists for the channel
+	// Verify if a connection already exists for the channel
 	if db.ViewConnection(i.ChannelID) != "" {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -48,7 +48,7 @@ func CreateChat(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	if db.IsBanned(userID) {
 		return
 	}
-    // Check if the channel is in the waiting list
+	// Check if the channel is in the waiting list
 	if db.IsWaiting(i.ChannelID) != -1 {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -62,11 +62,11 @@ func CreateChat(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		utils.SetPair(i.ChannelID, pair, i)
 	} else {
 		db.PushWaitList(i.ChannelID)
-        if db.IsKeyPresentInBucket("Channels", i.ChannelID) {
-            db.GetRandomSubscribers(i.ChannelID, func(channelID string) {
-                s.ChannelMessageSend(channelID, "*beep beep*\nA random user is trying to connect. To respond, type the command `/chat`.")
-            })
-        }
+		if db.IsKeyPresentInBucket("Channels", i.ChannelID) {
+			db.GetRandomSubscribers(i.ChannelID, func(channelID string) {
+				s.ChannelMessageSend(channelID, "*beep beep*\nA random user is trying to connect. To respond, type the command `/chat`.")
+			})
+		}
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
@@ -87,11 +87,9 @@ func EndChat(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			},
 		})
 	}
+	db.RemoveTempUsers(i.ChannelID)
 	if pair := db.ViewConnection(i.ChannelID); pair != "" {
 		utils.UnsetPair(i.ChannelID, pair, i)
-	}
-	if i.GuildID != "" {
-		db.RemoveTempUsers(i.ChannelID)
 	}
 }
 

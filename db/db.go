@@ -2,7 +2,6 @@ package db
 
 import (
 	"log"
-	"math/rand"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -88,40 +87,12 @@ func GetRandomSubscribers(channelID string, ring func(string)) {
 			log.Panic("Bucket not found")
 		}
 
-		// Count the number of keys in the bucket
-		count := 0
-		bucket.ForEach(func(_, _ []byte) error {
-			count++
+		bucket.ForEach(func(key, _ []byte) error {
+			if channelID != string(key) {
+				ring(string(key))
+			}
 			return nil
 		})
-
-		// Select 9 random keys
-		rand.Seed(time.Now().UnixNano())
-		selectedKeys := make(map[string]bool)
-		for len(selectedKeys) < 9 && count > 0 {
-			// Generate a random key index
-			index := rand.Intn(count)
-
-			// Iterate over the keys and select the key at the random index
-			i := 0
-			bucket.ForEach(func(k, _ []byte) error {
-				if i == index {
-					selectedKeys[string(k)] = true
-				}
-				i++
-				return nil
-			})
-
-			// Decrement the count
-			count--
-		}
-
-		// Ring the selected keys
-		for key := range selectedKeys {
-            if channelID != key {
-                ring(key)
-            }
-		}
 
 		return nil
 	})
@@ -131,7 +102,7 @@ func GetRandomSubscribers(channelID string, ring func(string)) {
 }
 
 func GetKeyCount(bucketName string) int {
-    count := 0
+	count := 0
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucketName))
 		if bucket == nil {
@@ -148,7 +119,7 @@ func GetKeyCount(bucketName string) int {
 	if err != nil {
 		log.Panic("Cannot count Subscribers")
 	}
-    return count
+	return count
 }
 
 /* ---- IN MEMORY DB ---- */
