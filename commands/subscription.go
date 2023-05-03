@@ -49,7 +49,7 @@ func subscribeChannel(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: "You have been upgraded to a premium user. You will start recieving incoming calls.",
+			Content: "You have been enlisted. You will start recieving incoming calls.",
 		},
 	})
 }
@@ -62,7 +62,6 @@ func unsubscribeChannel(s *discordgo.Session, i *discordgo.InteractionCreate) {
 				Content: "You are not subsribed to unsubscribe.",
 			},
 		})
-        return
 	}
 	if i.GuildID != "" {
 		db.DeleteDataFromBucket("Guilds", i.GuildID)
