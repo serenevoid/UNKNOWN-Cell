@@ -34,7 +34,17 @@ func init() {
 }
 
 func CreateChat(s *discordgo.Session, i *discordgo.InteractionCreate) {
-  // Verify if a connection already exists for the channel
+  // Block DM chats
+  if i.GuildID == "" {
+    s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+      Type: discordgo.InteractionResponseChannelMessageWithSource,
+      Data: &discordgo.InteractionResponseData{
+        Content: "Cannot start a chat in DMs. Please use a server.",
+      },
+    })
+    return
+  }
+  // Check for ongoing chat sessions
   if db.ViewConnection(i.ChannelID) != "" {
     s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
       Type: discordgo.InteractionResponseChannelMessageWithSource,

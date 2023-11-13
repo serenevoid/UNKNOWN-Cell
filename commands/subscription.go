@@ -33,25 +33,23 @@ func subscribeChannel(s *discordgo.Session, i *discordgo.InteractionCreate) {
     })
     return
   }
-  if i.GuildID != "" {
-    if db.IsKeyPresentInBucket("Guilds", i.GuildID) {
-      s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-        Type: discordgo.InteractionResponseChannelMessageWithSource,
-        Data: &discordgo.InteractionResponseData{
-          Content: "Another channel in this server has been registered earlier. Switching subscription to current channel.",
-        },
-      })
-      return
-    }
-    db.InsertDataToBucket("Guilds", i.GuildID, []byte(i.ChannelID))
+  if db.IsKeyPresentInBucket("Guilds", i.GuildID) {
+    s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+      Type: discordgo.InteractionResponseChannelMessageWithSource,
+      Data: &discordgo.InteractionResponseData{
+        Content: "Another channel in this server has been registered earlier. Switching subscription to current channel.",
+      },
+    })
+    return
   }
+  db.InsertDataToBucket("Guilds", i.GuildID, []byte(i.ChannelID))
   db.InsertDataToBucket("Channels", i.ChannelID, []byte(strconv.Itoa(time.Now().YearDay())))
   s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
     Type: discordgo.InteractionResponseChannelMessageWithSource,
     Data: &discordgo.InteractionResponseData{
       Content: "You have been enlisted. You will start recieving incoming calls.",
     },
-    })
+  })
 }
 
 func unsubscribeChannel(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -63,9 +61,7 @@ func unsubscribeChannel(s *discordgo.Session, i *discordgo.InteractionCreate) {
       },
     })
   }
-  if i.GuildID != "" {
-    db.DeleteDataFromBucket("Guilds", i.GuildID)
-  }
+  db.DeleteDataFromBucket("Guilds", i.GuildID)
   db.DeleteDataFromBucket("Channels", i.ChannelID)
   s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
     Type: discordgo.InteractionResponseChannelMessageWithSource,

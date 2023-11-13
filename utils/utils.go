@@ -8,19 +8,11 @@ import (
 )
 
 func GetUserID(i *discordgo.InteractionCreate) string {
-  if i.GuildID != "" {
-    return i.Member.User.ID
-  } else {
-    return i.User.ID
-  }
+  return i.Member.User.ID
 }
 
 func GetUserTag(i *discordgo.InteractionCreate) string {
-  if i.GuildID != "" {
-    return i.Member.User.Username+"#"+i.Member.User.Discriminator
-  } else {
-    return i.User.Username+"#"+i.User.Discriminator
-  }
+  return i.Member.User.Username+"#"+i.Member.User.Discriminator
 }
 
 func SetPair(user1 string, user2 string, i *discordgo.InteractionCreate) {
