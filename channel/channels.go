@@ -47,9 +47,9 @@ func CreateChannel() {
 }
 
 func sendMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
-  name := ":" + UserIcons[db.GetTempUserIndex(m.ChannelID, m.Author.ID)] + " **:** "
+  name := ":" + UserIcons[db.GetTempUserIndex(m.ChannelID, m.Author.ID)] + ":"
   _, err := s.ChannelMessageSend(db.ViewConnection(m.ChannelID),
-    fmt.Sprintf("%s: %s", name, m.Content))
+    fmt.Sprintf("%s **:** %s", name, m.Content))
   if err != nil {
     fmt.Println("error sending message: ", err)
   }
