@@ -3,11 +3,19 @@ package channel
 import (
   "fmt"
   "regexp"
-  "strconv"
   "unknown/db"
   "unknown/session"
 
   "github.com/bwmarrin/discordgo"
+)
+
+var (
+  UserIcons = []string{
+    "dog", "cat", "mouse", "hamster", "rabbit", "fox", "bear", "panda_face",
+    "polar_bear", "koala", "tiger", "lion", "cow", "pig", "frog", "monkey_face",
+    "chicken", "wolf", "boar", "octopus", "squid", "gorilla", "deer", "raccoon",
+    "hedgehog",
+  }
 )
 
 func CreateChannel() {
@@ -29,23 +37,23 @@ func CreateChannel() {
         }
       }
     }
-    })
+  })
   go func() {
     for {
       m := <-messageChannel
       go sendMessage(s, m)
     }
-    }()
+  }()
 }
 
 func sendMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
-  name := "Stranger"
+  name := ""
   if m.GuildID != "" {
-    name = name + strconv.Itoa(db.GetTempUserIndex(m.ChannelID, m.Author.ID))
+    name = ":" + UserIcons[db.GetTempUserIndex(m.ChannelID, m.Author.ID)] + ": : "
   }
-  _, err := s.ChannelMessageSend(db.ViewConnection(m.ChannelID),
+    _, err := s.ChannelMessageSend(db.ViewConnection(m.ChannelID),
     fmt.Sprintf("%s: %s", name, m.Content))
-  if err != nil {
-    fmt.Println("error sending message: ", err)
+    if err != nil {
+      fmt.Println("error sending message: ", err)
+    }
   }
-}
